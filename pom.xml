@@ -34,6 +34,7 @@
     <module>email-service</module>
     <module>report-management</module>
     <module>eureka-server</module>
+    <module>stats-core</module>
   </modules>
 
   <dependencies>

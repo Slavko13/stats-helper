@@ -28,11 +28,25 @@
 			<version>3.1.4</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.stats-helper</groupId>
+			<artifactId>stats-core</artifactId>
+			<version>1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.stats.helper</groupId>
+			<artifactId>database</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
 			<version>3.1.4</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-openfeign-core</artifactId>
