@@ -1,0 +1,202 @@
+version: '3.4'
+
+services:
+
+  local.stats.postgres:
+    build:
+      context: config/docker/composes/postgres
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_PASSWORD=root
+    volumes:
+      - stats_postgres_data:/var/lib/postgresql/data
+      - stats_postgres_tmp:/tmp/postgresql/backups
+    labels:
+      - "docker-volume-backup.exec-pre-backup=create_backup.sh"
+      - "docker-volume-backup.exec-post-backup=remove_backups.sh"
+    hostname: local.postgres.stats
+    container_name: local-stats-postgres
+    image: postgres.stats:local
+    expose:
+      - "5432"
+    ports:
+      - "5441:5432"
+    networks:
+      - postgres
+
+  local.party:
+    build:
+      context: ./party-management/target/out
+      dockerfile: Dockerfile
+    container_name: party
+    hostname: party
+    image: party:local
+    labels:
+      - "docker-volume-backup.stop-during-backup=true"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - local.stats.postgres
+      - kafka
+      - eureka-server
+    expose:
+      - "8080"
+    ports:
+      - "8080:8080"
+    links:
+      - "local.wisla.postgres:local.postgres.wisla"
+      - "kafka:kafka"
+      - "eureka-server:eureka-server"
+    networks:
+      - postgres
+      - kafka-net
+      - eureka
+
+
+  local.statistic:
+    build:
+      context: ./statistic-management/target/out
+      dockerfile: Dockerfile
+    container_name: statistic
+    hostname: statistic
+    image: statistic:local
+    labels:
+      - "docker-volume-backup.stop-during-backup=true"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - local.stats.postgres
+      - kafka
+      - eureka-server
+    expose:
+      - "8081"
+    ports:
+      - "8081:8081"
+    links:
+      - "kafka:kafka"
+      - "eureka-server:eureka-server"
+    networks:
+      - postgres
+      - kafka-net
+      - eureka
+
+  local.report:
+    build:
+      context: ./report-management/target/out
+      dockerfile: Dockerfile
+    container_name: report
+    hostname: report
+    image: report:local
+    labels:
+      - "docker-volume-backup.stop-during-backup=true"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - local.stats.postgres
+      - kafka
+      - eureka-server
+    expose:
+      - "8082"
+    ports:
+      - "8082:8082"
+    links:
+      - "eureka-server:eureka-server"
+    networks:
+      - postgres
+      - kafka-net
+      - eureka
+
+  local.wicorr.coordinator:
+    build:
+      context: ./email-service/target/out
+      dockerfile: Dockerfile
+    container_name: email-service
+    hostname: email-service
+    image: email-service:local
+    labels:
+      - "docker-volume-backup.stop-during-backup=true"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - eureka-server
+    expose:
+      - "8083"
+    ports:
+      - "8083:8083"
+    links:
+      - "eureka-server:eureka-server"
+    networks:
+      - postgres
+      - kafka-net
+      - eureka
+
+  eureka-server:
+    build:
+      context: ./wicorr-eureka-server/target/out
+      dockerfile: Dockerfile
+    container_name: wicorr-eureka-server
+    image: eureka-server.wicorr:local
+    hostname: eureka-server
+    expose:
+      - "8761"
+    ports:
+      - "8761:8761"
+    networks:
+      - eureka
+
+
+  zookeeper:
+    image: zookeeper:3.7.0
+    container_name: zookeeper
+    restart: "no"
+    networks:
+      - kafka-net
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: obsidiandynamics/kafka
+    container_name: kafka
+    hostname: kafka
+    restart: "no"
+    networks:
+      - kafka-net
+    ports:
+      - "9092:9092"
+    expose:
+      - "9092"
+    environment:
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER_INTERNAL:PLAINTEXT,DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: DOCKER_INTERNAL://:29092,DOCKER_EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: DOCKER_INTERNAL://kafka:29092,DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    restart: "no"
+    networks:
+      - kafka-net
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:29092"
+    depends_on:
+      - "kafka"
+
+networks:
+  postgres:
+    driver: bridge
+  kafka-net:
+    driver: bridge
+  eureka:
+    driver: bridge
+
+volumes:
+  stats_postgres_data:
+  stats_postgres_tmp:
