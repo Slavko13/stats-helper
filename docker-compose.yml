@@ -5,7 +5,7 @@ services:
   local.stats.postgres:
     build:
       context: config/docker/composes/postgres
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     environment:
       - POSTGRES_PASSWORD=root
     volumes:
@@ -20,14 +20,14 @@ services:
     expose:
       - "5432"
     ports:
-      - "5441:5432"
+      - "5451:5432"
     networks:
       - postgres
 
   local.party:
     build:
       context: ./party-management/target/out
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     container_name: party
     hostname: party
     image: party:local
@@ -44,7 +44,6 @@ services:
     ports:
       - "8080:8080"
     links:
-      - "local.wisla.postgres:local.postgres.wisla"
       - "kafka:kafka"
       - "eureka-server:eureka-server"
     networks:
@@ -56,7 +55,7 @@ services:
   local.statistic:
     build:
       context: ./statistic-management/target/out
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     container_name: statistic
     hostname: statistic
     image: statistic:local
@@ -83,7 +82,7 @@ services:
   local.report:
     build:
       context: ./report-management/target/out
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     container_name: report
     hostname: report
     image: report:local
@@ -106,36 +105,12 @@ services:
       - kafka-net
       - eureka
 
-  local.wicorr.coordinator:
-    build:
-      context: ./email-service/target/out
-      dockerfile: Dockerfile
-    container_name: email-service
-    hostname: email-service
-    image: email-service:local
-    labels:
-      - "docker-volume-backup.stop-during-backup=true"
-    environment:
-      - SPRING_PROFILES_ACTIVE=local
-    depends_on:
-      - eureka-server
-    expose:
-      - "8083"
-    ports:
-      - "8083:8083"
-    links:
-      - "eureka-server:eureka-server"
-    networks:
-      - postgres
-      - kafka-net
-      - eureka
-
   eureka-server:
     build:
-      context: ./wicorr-eureka-server/target/out
-      dockerfile: Dockerfile
-    container_name: wicorr-eureka-server
-    image: eureka-server.wicorr:local
+      context: ./eureka-server/target/out
+      dockerfile: DockerFile
+    container_name: eureka-server
+    image: eureka-server:local
     hostname: eureka-server
     expose:
       - "8761"
